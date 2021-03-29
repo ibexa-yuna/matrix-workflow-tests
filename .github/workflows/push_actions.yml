@@ -10,7 +10,8 @@ jobs:
     steps:
       - name: Set Environment
         run: |
-          echo "BUILD_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+          #echo "BUILD_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+          echo "BUILD_TAG=v3.3.1" >> $GITHUB_ENV
 
       - uses: actions/checkout@v2
 
