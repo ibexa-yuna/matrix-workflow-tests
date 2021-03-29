@@ -39,8 +39,6 @@ jobs:
       # do some magic comparing those outputs
       - run: |
           echo TEST
-        with:
-
 
       # get package json list
       - id: output_data
