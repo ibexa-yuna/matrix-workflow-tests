@@ -1,0 +1,75 @@
+name: tests
+on: [ push ]
+
+jobs:
+  provide_changed_packages:
+    # see json juggling: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions#example-6
+    # see https://stackoverflow.com/a/62953566/1348344
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Set Environment
+        run: |
+          echo "BUILD_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v2
+
+      # load current composer.lock
+      - id: currentLock
+        run: |
+          jq '.packages[] | select(.name | contains("ezsystems") or contains("ibexa") ) | [.name, .version] | { (.[0]) : .[1] }' composer.lock
+
+      - name: Get previous release tag based on type
+        id: prevrelease
+        uses: ibexa/version-logic-action@master
+        with:
+          currentTag: ${{ env.BUILD_TAG }}
+
+      # checkout previous tag
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.prevrelease.outputs.previousTag }}
+
+      # load previous composer.lock
+      - id: previousLock
+        run: |
+          jq '.packages[] | select(.name | contains("ezsystems") or contains("ibexa") ) | [.name, .version] | { (.[0]) : .[1] }' composer.lock
+
+      # do some magic comparing those outputs
+      - run: |
+          echo TEST
+        with:
+
+
+      # get package json list
+      - id: output_data
+        run: echo "::set-output name=matrix::$(packages/monorepo-builder/bin/monorepo-builder packages-json)"
+
+    # this step is needed, so the output gets to the next defined job
+    outputs:
+      matrix: ${{ steps.output_data.outputs.matrix }}
+
+  get_package_changelogs:
+    needs: provide_changed_packages
+
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [4, 3, 2] # ${{fromJson(needs.provide_changed_packages.outputs.matrix)}}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - # Uses an action in the root directory
+        name: Monorepo Split of ${{ matrix.package }}
+        uses: symplify/github-action-monorepo-split@1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          package-directory: 'packages/${{ matrix.package }}'
+          split-repository-organization: 'symplify'
+          split-repository-name: '${{ matrix.package }}'
+          user-name: "kaizen-ci"
+          user-email: "info@kaizen-ci.org"
+          branch: "main"
