@@ -58,8 +58,10 @@ jobs:
         package: ${{fromJson(needs.provide_changed_packages.outputs.matrix)}}
 
     steps:
-      - run: echo ${{ matrix.package }}
       - uses: actions/checkout@v2
+
+      - run: |
+          echo ${{ matrix.package }}
 
       - # Uses an action in the root directory
         name: Monorepo Split of ${{ matrix.package }}
