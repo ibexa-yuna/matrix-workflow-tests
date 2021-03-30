@@ -5,7 +5,7 @@ jobs:
   provide_changed_packages:
     # see json juggling: https://docs.github.com/en/free-pro-team@latest/actions/reference/context-and-expression-syntax-for-github-actions#example-6
     # see https://stackoverflow.com/a/62953566/1348344
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Set Environment
@@ -52,7 +52,7 @@ jobs:
           cat > $FILE2 <<'EOF'
           ${{ steps.currentLock.outputs.lock }}
           EOF
-          OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '[ .[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1) ] | { include: . }')
+          OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '[ .[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1) ]')
           echo "::set-output name=matrix::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
     # this step is needed, so the output gets to the next defined job
@@ -62,14 +62,36 @@ jobs:
   get_package_changelogs:
     needs: provide_changed_packages
 
-    runs-on: ubuntu-18.04
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{fromJson(needs.provide_changed_packages.outputs.matrix)}}
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout Generator
+        uses: actions/checkout@v2
+        with:
+          repository: ibexa/changelog-generator-action
+          ref: v1.0.0
 
-      - run: |
-          echo ${{ matrix.package }}
+# ${{fromJson(needs.provide_changed_packages.outputs.matrix)}}
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install pygithub
+        run: |
+          pip install pygithub
+
+      - name: Run generator in a loop
+        id: generator
+        env:
+          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jq -c '.[]' input.json | while read i; do
+            export GITHUB_REPOSITORY=$(jq -r '.name' <<< "$i")
+            export INPUT_PREVIOUSTAG=$(jq -r '.versions[0]' <<< "$i")
+            export INPUT_CURRENTTAG=$(jq -r '.versions[1]' <<< "$i")
+            python main.py >> generator_output
+          done
+          echo "::set-output name=output::$( cat generator_output | sed ':a;N;$!ba;s/\n/%0A/g' )"
+
