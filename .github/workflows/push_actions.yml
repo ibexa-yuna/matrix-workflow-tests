@@ -43,8 +43,12 @@ jobs:
         run: |
           FILE1=$(mktemp)
           FILE2=$(mktemp)
-          echo ${{ steps.previousLock.outputs.lock }} > $FILE1
-          echo ${{ steps.currentLock.outputs.lock }} > $FILE2
+          cat > $FILE1 <<'EOF'
+          ${{ steps.previousLock.outputs.lock }}
+          EOF
+          cat > $FILE2 <<'EOF'
+          ${{ steps.currentLock.outputs.lock }}
+          EOF
           OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '.[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1)')
           echo "::set-output name=output::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
