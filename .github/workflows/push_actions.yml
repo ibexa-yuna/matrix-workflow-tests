@@ -87,7 +87,7 @@ jobs:
         env:
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cat > input.json <<<'EOF'
+          cat > input.json <<'EOF'
           ${{ needs.provide_changed_packages.outputs.matrix }}
           EOF
           jq -c '.[]' input.json | while read i; do
@@ -98,3 +98,8 @@ jobs:
           done
           echo "::set-output name=output::$( cat generator_output | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
+      - name: Archive markdown
+        uses: actions/upload-artifact@v2
+        with:
+          name: changelogs
+          path: generator_output
