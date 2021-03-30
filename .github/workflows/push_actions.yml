@@ -17,6 +17,7 @@ jobs:
 
       # load current composer.lock
       - id: currentLock
+        name: Gather latest package information
         run: |
           OUT=$(jq --slurp '[.[].packages[] | select(.name | contains("ezsystems") or contains("ibexa")) | [.name, .version] | { name: (.[0]), version: .[1] }]' composer.lock)
           echo "::set-output name=lock::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
@@ -34,12 +35,14 @@ jobs:
 
       # load previous composer.lock
       - id: previousLock
+        name: Gather previous package information
         run: |
           OUT=$(jq --slurp '[.[].packages[] | select(.name | contains("ezsystems") or contains("ibexa")) | [.name, .version] | { name: (.[0]), version: .[1] }]' composer.lock)
           echo "::set-output name=lock::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
       # do some magic comparing those outputs
       - id: output_data
+        name: Do comparison and output JSON with changes
         run: |
           FILE1=$(mktemp)
           FILE2=$(mktemp)
@@ -49,7 +52,7 @@ jobs:
           cat > $FILE2 <<'EOF'
           ${{ steps.currentLock.outputs.lock }}
           EOF
-          OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '.[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1)')
+          OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '[ .[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1) ]')
           echo "::set-output name=matrix::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
     # this step is needed, so the output gets to the next defined job
