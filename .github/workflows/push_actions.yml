@@ -39,7 +39,7 @@ jobs:
           echo "::set-output name=lock::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
       # do some magic comparing those outputs
-      - id: comparator
+      - id: output_data
         run: |
           FILE1=$(mktemp)
           FILE2=$(mktemp)
@@ -50,11 +50,7 @@ jobs:
           ${{ steps.currentLock.outputs.lock }}
           EOF
           OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '.[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1)')
-          echo "::set-output name=output::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
-
-      # get package json list
-      - id: output_data
-        run: echo "::set-output name=matrix::${{ steps.comparator.outputs.output }}"
+          echo "::set-output name=matrix::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
     # this step is needed, so the output gets to the next defined job
     outputs:
