@@ -85,7 +85,7 @@ jobs:
       - name: Run generator in a loop
         id: generator
         env:
-          INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           cat > input.json <<'EOF'
           ${{ needs.provide_changed_packages.outputs.matrix }}
