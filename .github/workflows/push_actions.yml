@@ -87,6 +87,9 @@ jobs:
         env:
           INPUT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          cat > input.json <<<'EOF'
+          ${{ needs.provide_changed_packages.outputs.matrix }}
+          EOF
           jq -c '.[]' input.json | while read i; do
             export GITHUB_REPOSITORY=$(jq -r '.name' <<< "$i")
             export INPUT_PREVIOUSTAG=$(jq -r '.versions[0]' <<< "$i")
