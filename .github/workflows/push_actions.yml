@@ -19,7 +19,7 @@ jobs:
       - id: currentLock
         run: |
           OUT=$(jq --slurp '[.[].packages[] | select(.name | contains("ezsystems") or contains("ibexa")) | [.name, .version] | { name: (.[0]), version: .[1] }]' composer.lock)
-          echo "::set-output name=lock::$( echo "OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
+          echo "::set-output name=lock::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
       - name: Get previous release tag based on type
         id: prevrelease
@@ -36,7 +36,7 @@ jobs:
       - id: previousLock
         run: |
           OUT=$(jq --slurp '[.[].packages[] | select(.name | contains("ezsystems") or contains("ibexa")) | [.name, .version] | { name: (.[0]), version: .[1] }]' composer.lock)
-          echo "::set-output name=lock::$( echo "OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
+          echo "::set-output name=lock::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
       # do some magic comparing those outputs
       - id: comparator
@@ -46,7 +46,7 @@ jobs:
           echo ${{ steps.previousLock.outputs.lock }} > $FILE1
           echo ${{ steps.currentLock.outputs.lock }} > $FILE2
           OUT=$(jq -s 'flatten | group_by(.name)' $FILE1 $FILE2 | jq -s '.[][] | {name: (.[0].name), versions: [ .[0].version, .[1].version ] | unique} | select(.versions | length > 1)')
-          echo "::set-output name=output::$( echo "OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
+          echo "::set-output name=output::$( echo "$OUT" | sed ':a;N;$!ba;s/\n/%0A/g' )"
 
       # get package json list
       - id: output_data
