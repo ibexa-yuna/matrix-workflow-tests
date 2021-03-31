@@ -101,8 +101,8 @@ jobs:
           EOF
           export INPUT_BARE=True
           echo "${{ github.repository }} ${{ env.BUILD_TAG }} change log" >> generator_output
-          echo "Changes since ${{ steps.prevrelease.outputs.previousTag }}"
-          echo '' >> generator_output
+          echo "Changes since ${{ steps.prevrelease.outputs.previousTag }}" >> generator_output
+          echo "" >> generator_output
           jq -c '.[]' input.json | while read i; do
             export GITHUB_REPOSITORY=$(jq -r '.name' <<< "$i")
             export INPUT_PREVIOUSTAG=$(jq -r '.versions[0]' <<< "$i")
