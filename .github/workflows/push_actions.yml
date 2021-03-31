@@ -65,13 +65,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set Environment
+        run: |
+          #echo "BUILD_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+          echo "BUILD_TAG=v3.3.1" >> $GITHUB_ENV
+
+      - name: Get previous release tag based on type
+        id: prevrelease
+        uses: ibexa/version-logic-action@master
+        with:
+          currentTag: ${{ env.BUILD_TAG }}
+
       - name: Checkout Generator
         uses: actions/checkout@v2
         with:
           repository: ibexa/changelog-generator-action
           ref: master
-
-# ${{fromJson(needs.provide_changed_packages.outputs.matrix)}}
 
       - name: Setup Python environment
         uses: actions/setup-python@v2
@@ -91,10 +100,14 @@ jobs:
           ${{ needs.provide_changed_packages.outputs.matrix }}
           EOF
           export INPUT_BARE=True
+          echo "${{ github.repository }} ${{ env.BUILD_TAG }} change log" >> generator_output
+          echo "Changes since ${{ steps.prevrelease.outputs.previousTag }}"
+          echo '' >> generator_output
           jq -c '.[]' input.json | while read i; do
             export GITHUB_REPOSITORY=$(jq -r '.name' <<< "$i")
             export INPUT_PREVIOUSTAG=$(jq -r '.versions[0]' <<< "$i")
             export INPUT_CURRENTTAG=$(jq -r '.versions[1]' <<< "$i")
+            printf "##" >> >> generator_output
             python main.py >> generator_output
             echo '' >> generator_output
           done
